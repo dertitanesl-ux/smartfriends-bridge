@@ -139,115 +139,172 @@ And you will see an output like this:
 ```
 
 # Using REST API
+The service exposes a simple REST API which you can call to control your devices. Below are examples of the raw endpoints, followed by **Home Assistant examples using the `rest` integration** (REST sensors + `rest_command`) instead of `command_line` / `shell_command`.
 
-The service exposes a simple REST API, which can be called to control your devices.
+## Examples: calling the REST API directly
 
-#### Examples on how to use the REST API
-- Open Shutter:
-
-  ```http://127.0.0.1:5001/set/13103/rollingShutter/open```
-
+- Open shutter:
+  ```text
+  http://127.0.0.1:5001/set/13103/rollingShutter/up
+  ```
 - Close shutter:
-
-  ```http://127.0.0.1:5001/set/13103/rollingShutter/close```
-
+  ```text
+  http://127.0.0.1:5001/set/13103/rollingShutter/down
+  ```
 - Stop shutter:
-
-  ```http://127.0.0.1:5001/set/13103/rollingShutter/stop```
-
+  ```text
+  http://127.0.0.1:5001/set/13103/rollingShutter/stop
+  ```
 - Go to position 50%:
-
-  ```http://127.0.0.1:5001/set/13103/position/50```
-
+  ```text
+  http://127.0.0.1:5001/set/13103/position/50
+  ```
 - Get current shutter position:
+  ```text
+  http://127.0.0.1:5001/get/13103/position
+  ```
+- Move shutter 1 step down:
+  ```text
+  http://127.0.0.1:5001/set/13103/stepper/down
+  ```
 
-  ```http://127.0.0.1:5001/get/13103/position```
-  
-- Move the shutter 1 step down:
+Other devices can be controlled by using a command or setting a numeric value. Simple devices like a Zigbee switch can be controlled with:
 
-  ```http://127.0.0.1:5001/set/13103/stepper/down```
+- Turn device on:
+  ```text
+  http://127.0.0.1:5001/set/1323/on
+  ```
+- Turn device off:
+  ```text
+  http://127.0.0.1:5001/set/1323/off
+  ```
+- Read state:
+  ```text
+  http://127.0.0.1:5001/get/1323
+  ```
 
-Other devices can be controlled by using a command or setting a numeric value. I have only tested Zigbee switches but others should also work.
+---
 
-Simple devices like a light will only have 1 connected device. These can be controlled directly by invoking the set
+## Use case: Home Assistant (recommended approach)
 
-- Turn light on:
+This is a simple use case: controlling roller shutters (covers) and switches from Home Assistant.
 
-```http://127.0.0.1:5001/set/on```
+> Note: Some devices (e.g., Schellenberg Rollodrive) report position inverted compared to Home Assistant.
+> If that applies to you, map it with `100 - value` when reading, and `100 - position` when setting.
 
+### A) Cover (rolling shutter) using REST sensor + rest_command + template cover
 
-or can be more specific for the device:
+This example creates three parts:
 
-```http://127.0.0.1:5001/set/switchActuator/on```
-
-
-or
-
-As it can be seen, actions are sent using the device ID and the specific device type name.
-
-#### Use case: Home Assistant covers
-
-This is a simple use case: Controlling roller shutters (alias covers or rolling shutters...)
-
-See the official Home Assistant documentation for more information
-https://www.home-assistant.io/integrations/command_line/
-
-![covers](https://raw.githubusercontent.com/GimpArm/hassio-addons/main/images/doc01.png)
-
-The example shown above needs the creation of 3 elements:
-- shell commands to interract with the REST API (locally)
-- sensors to get the current position of the covers
-- the covers themselves declared as templates
-*note: Schellenberg Rollodrive sets and reports position opposite of how Home Assistant covers work. An easy solution is to always substract the value from 100*
+1. A **REST sensor** to poll the current shutter position
+2. **REST commands** for up/down/stop/set-position
+3. A **Template Cover** that binds (1) and (2) into a real `cover.*` entity
 
 ```yaml
-shell_command:
-    shutter_up:        "curl http://127.0.0.1:5001/set/{{ device_id }}/rollingShutter/up"
-    shutter_down:      "curl http://127.0.0.1:5001/set/{{ device_id }}/rollingShutter/down"
-    shutter_stop:      "curl http://127.0.0.1:5001/set/{{ device_id }}/rollingShutter/stop"
-    shutter_position:  "curl http://127.0.0.1:5001/set/{{ device_id }}/position/{{ 100 - position }}"
+# 1) Read current position (polling)
+rest:
+  - resource: "http://127.0.0.1:5001/get/10433/position"
+    scan_interval: 5
+    sensor:
+      - name: "Shutter Position Office"
+        unique_id: "shutter_position_office"
+        unit_of_measurement: "%"
+        value_template: "{{ 100 - (value_json.currentValue | int(0)) }}"
 
-command_line:
-  - sensor:
-      name: shutter_position_office
-      command : 'curl http://127.0.0.1:5001/get/10433/position'
-      unit_of_measurement: '%'
-      scan_interval: 5
-      value_template: '{{ 100 - value_json.currentValue }}'
-  - switch:
-      name: Office Light
-      command_on: 'curl http://127.0.0.1:5001/set/14106/on'
-      command_off: 'curl http://127.0.0.1:5001/set/14106/off'
-      scan_interval: 5
-      command_state: 'curl http://127.0.0.1:5001/get/14106'
-      value_template: '{{ value_json.state }}'
+# 2) Control endpoints
+rest_command:
+  shutter_up:
+    url: "http://127.0.0.1:5001/set/{{ device_id }}/rollingShutter/up"
+    method: GET
 
+  shutter_down:
+    url: "http://127.0.0.1:5001/set/{{ device_id }}/rollingShutter/down"
+    method: GET
+
+  shutter_stop:
+    url: "http://127.0.0.1:5001/set/{{ device_id }}/rollingShutter/stop"
+    method: GET
+
+  shutter_set_position:
+    # Invert for devices that are opposite of Home Assistant
+    url: "http://127.0.0.1:5001/set/{{ device_id }}/position/{{ 100 - position }}"
+    method: GET
+
+# 3) The cover entity
 cover:
   - platform: template
     covers:
       shutter_office:
         friendly_name: "Shutter - Office"
         device_class: shutter
-        position_template: "{{ states('sensor.shutter_position_office') }}"
+        position_template: "{{ states('sensor.shutter_position_office') | int(0) }}"
         open_cover:
-          service: shell_command.shutter_up
+          service: rest_command.shutter_up
           data:
             device_id: 10433
         close_cover:
-          service: shell_command.shutter_down
+          service: rest_command.shutter_down
           data:
             device_id: 10433
         stop_cover:
-          service: shell_command.shutter_stop
+          service: rest_command.shutter_stop
           data:
             device_id: 10433
         set_cover_position:
-          service: shell_command.shutter_position
-          data_template:
+          service: rest_command.shutter_set_position
+          data:
             device_id: 10433
             position: "{{ position }}"
-
 ```
+
+---
+
+### B) Switch using REST sensor + rest_command + template switch
+
+Example configuration:
+
+```yaml
+# 1) Read state
+rest:
+  - resource: "http://127.0.0.1:5001/get/14106"
+    scan_interval: 5
+    sensor:
+      - name: "Office Light Raw State"
+        unique_id: "office_light_raw_state"
+        value_template: "{{ value_json.state }}"  # "On" or "Off"
+
+# 2) Control endpoints
+rest_command:
+  device_on:
+    url: "http://127.0.0.1:5001/set/{{ device_id }}/on"
+    method: GET
+  device_off:
+    url: "http://127.0.0.1:5001/set/{{ device_id }}/off"
+    method: GET
+
+# 3) The switch entity
+switch:
+  - platform: template
+    switches:
+      office_light:
+        friendly_name: "Office Light"
+        # Convert the REST sensor string ("On"/"Off") into a boolean
+        value_template: "{{ states('sensor.office_light_raw_state') | lower == 'on' }}"
+        turn_on:
+          service: rest_command.device_on
+          data:
+            device_id: 14106
+        turn_off:
+          service: rest_command.device_off
+          data:
+            device_id: 14106
+```
+
+---
+
+### Notes
+
+- This REST approach is **polling-based**, so state updates can lag by your `scan_interval`.
 
 
 # Using MQTT
