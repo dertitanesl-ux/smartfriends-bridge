@@ -185,12 +185,10 @@ Other devices can be controlled by using a command or setting a numeric value. S
 
 ---
 
-## Use case: Home Assistant (recommended approach)
+## Home Assistant RESTful Sensor
 
-This is a simple use case: controlling roller shutters (covers) and switches from Home Assistant.
-
-> Note: Some devices (e.g., Schellenberg Rollodrive) report position inverted compared to Home Assistant.
-> If that applies to you, map it with `100 - value` when reading, and `100 - position` when setting.
+This is an example of integrating to Home Assistant using the [RESTful Sensor](https://www.home-assistant.io/integrations/sensor.rest/).
+The MQTT approach will yield better results but REST is still an option for people who do not want to use it.
 
 ### A) Cover (rolling shutter) using REST sensor + rest_command + template cover
 
