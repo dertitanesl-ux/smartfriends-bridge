@@ -60,11 +60,19 @@ namespace SmartFriends.Mqtt
             _mqttFactory = new MqttFactory();
         }
 
-        private static DeviceMap[] LoadDeviceMap(string path)
+        private DeviceMap[] LoadDeviceMap(string path)
         {
             if (File.Exists(path))
             {
-                return JsonConvert.DeserializeObject<DeviceMap[]>(File.ReadAllText(path));
+                try
+                {
+                    return JsonConvert.DeserializeObject<DeviceMap[]>(File.ReadAllText(path));
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex, $"Invalid deviceMap.json file. {ex.Message}");
+                    return Array.Empty<DeviceMap>();
+                }
             }
             File.WriteAllText(path, $"[{Environment.NewLine}{Environment.NewLine}]");
             return Array.Empty<DeviceMap>();
