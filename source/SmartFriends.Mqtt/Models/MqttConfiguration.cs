@@ -10,5 +10,6 @@
         public string User { get; set; }
         public string Password { get; set; }
         public bool UseSsl { get; set; }
+        public string ProtocolVersion { get; set; }
     }
 }

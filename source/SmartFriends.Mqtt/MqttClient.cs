@@ -127,11 +127,13 @@ namespace SmartFriends.Mqtt
 
         private MqttClientOptionsBuilder ClientOptions()
         {
+            var protocolVersion = !string.IsNullOrWhiteSpace(_mqttConfig.ProtocolVersion) && Enum.TryParse<MqttProtocolVersion>(_mqttConfig.ProtocolVersion, out var result) ? result : MqttProtocolVersion.V500;
+
             var options = new MqttClientOptionsBuilder()
                 .WithClientId(Guid.NewGuid().ToString())
                 .WithTcpServer(_mqttConfig.Server, _mqttConfig.Port)
                 .WithKeepAlivePeriod(TimeSpan.FromSeconds(60))
-                .WithProtocolVersion(MqttProtocolVersion.V500)
+                .WithProtocolVersion(protocolVersion)
                 .WithTlsOptions(x =>
                 {
                     x.UseTls(_mqttConfig.UseSsl)
