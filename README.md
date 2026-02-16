@@ -322,7 +322,7 @@ If there is no entry in the deviceMap.json file for a device then it will not be
   "Id": number, #-------> (required) The ´id´ from the above print out.
   "Type": string, #-----> (required) The HASSIO device type to be presented as.
   "Class": string, #----> (optional) The HASSIO device class, not all device types have classes.
-  "Paramters": { #------> (optional) Key value override HASSIO settings and TypeTemplate for specific operation of the devices. See HASSIO MQTT device type specific documentation.
+  "Parameters": { #------> (optional) Key value override HASSIO settings and TypeTemplate for specific operation of the devices. See HASSIO MQTT device type specific documentation.
     "hassio_key1": value1,
     "hassio_key2": value2
   }
