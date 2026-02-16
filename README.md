@@ -43,7 +43,7 @@ REST API is a more simple passive system. You must manually configure entities i
     "ShApiVersion":  "2.20" #-------> Extra param 4
   },
   "Mqtt": {
-    "Enable": false, #-------------------> Flag whether to enabled or disable the MQTT client.
+    "Enabled": false, #-------------------> Flag whether to enabled or disable the MQTT client.
     "DataPath": "/config/smartfriends2mqtt", #---------------------> Directory path to where the deviceMap.json and typeTemplate.json files are stored.
     "BaseTopic": "smartfriends2mqtt", #---> Base MQTT topic to store device information. Ok to leave as is.
     "Server": "homeassistant", #----------> Broker server name or ip.
