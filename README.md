@@ -50,7 +50,8 @@ REST API is a more simple passive system. You must manually configure entities i
     "Port": 1883, #-----------------------> Broker port, most likely 1883.
     "User": "mqtt", #---------------------> Broker client username.
     "Password": "4mqPass!", #-------------> Broker client password.
-    "UseSsl": false #--------------------> Flag whether the broker requires SSL or not.
+    "UseSsl": false, #--------------------> Flag whether the broker requires SSL or not.
+    "ProtocolVersion": "V500" #-----------> One of V310=3, V311=4, V500=5. If you have no problems, no need to change.
   }
 }
 ```
